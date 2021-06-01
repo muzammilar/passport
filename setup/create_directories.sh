@@ -1,0 +1,16 @@
+cd geoloc-server
+mkdir data
+mkdir data/double
+mkdir data/proportional
+mkdir data/random
+mkdir traceroutes_pkg/pings
+mkdir traceroutes_pkg/pings/results_url
+mkdir traceroutes_pkg/ripe
+mkdir traceroutes_pkg/ripe/data
+mkdir traceroutes_pkg/ripe/nodes
+mkdir traceroutes_pkg/ripe/pings
+mkdir traceroutes_pkg/ripe/raw
+mkdir traceroutes_pkg/ripe/traceroutes
+mkdir traceroutes_pkg/outputs
+mkdir geoloc_system/alidade_results
+mkdir geoloc_system/graph

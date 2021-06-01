@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% set active_page = "locate_ip" %}
+
+{% block content %}
+<div class="container">
+  <h1>Locate IP Address:</h1>
+  <br/><br/>
+  <p>Please provide a valid router IPv4 address to geolocate. <smallcaps>Passport</smallcaps> will try its best to locate it for you!</p><br/>
+    <div class="col-md-12 text-center">
+        <form action="{{ url_for('v1_locate_ip_address') }}" method="post">
+            <input type="text" class="form-control" name="ip_address" placeholder="207.210.142.101">
+             <br/>
+            <input type="submit" class="btn btn-info" name="submit_data" value="Locate IP!">
+        </form>
+    </div>
+</div>
+
+{% endblock %}

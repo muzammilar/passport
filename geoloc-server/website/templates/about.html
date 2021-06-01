@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% set active_page = "about" %}
+
+{% block content %}
+  <h1>About <smallcaps>Passport</smallcaps></h1>
+    <p> 
+        It is well known that at a global scale Internet routing is based on ASes and their relationships, not based on geopolitical properties of the networks they traverse. 
+        As a result, it is common for Internet traffic to traverse international borders, with potential implications for privacy, security, and efficiency.
+        While there is significant prior work that identifies the ASes traversed by Internet paths and on geolocating end hosts, there is little work that focuses on identifying the geolocations of <em>routers</em> along the paths and their implications. 
+    </p> 
+    <p> 
+        <smallcaps>Passport</smallcaps> sheds light on this issue by measuring how and when Internet traffic traverses national boundaries. 
+        To do this, it uses machine learning to combine individually noisy information sources, and measurements issued from hundereds of vantage points to provide a reliable location prediction for routers. 
+        By providing <smallcaps>Passport</smallcaps> with traceroutes and IP addresses, you will help us understand if and how Internet paths traverse national boundaries, even when two endpoints are in the same country. 
+        And we'll show you these paths, helping you to understand where your Internet traffic goes.
+    </p>
+    <p> 
+        With a corpus of data containing for 154 countries, hundereds of vantage points across the globe to perform measurements, <smallcaps>Passport</smallcaps> contains set of classifiers that accurately predict routers locations based on publicly available data, and iteratively refine the results with active measurements to improve its precision. 
+    </p>
+
+
+  <h1>API Access</h1>
+  <p>To access our public API, please refer to our <a href="https://drive.google.com/open?id=1rw15Egq2bvc6R6B6WLXZ464R5s2nZrJRLn4rJPFEWIM">API documentation</a>.</p>
+  <p>Our router geolocation API is available at <a href="{{ url_for('v1_api_locate_ip_address') }}">http://passport.ccs.neu.edu/api/v1/locateip</a>.</p>
+  <p>Our traceroute geolocation API is available at <a href="{{ url_for('v1_api_locate_traceroute') }}">http://passport.ccs.neu.edu/api/v1/locatetrace</a>.</p>
+
+  <h1>Source Code</h1>
+    <p>Want to help contribute to <smallcaps>Passport</smallcaps>? Our source code and data will be publicly available soon. *Links for repo, data and developer docs*</p>
+
+  <h1>Meet the Team</h1>
+  <ul>
+    <li>Advisor/Principal Investigator:
+      <ul>
+        <li> David Choffnes</li>
+        <li> Sharon Goldberg</li>
+      </ul>
+    </li>
+    <br/>
+    <li>Graduate Student/Lead Developer:
+      <ul>
+        <li> Muzammil Abdul Rehman</li>
+      </ul>
+    </li>
+    <br/>
+    <li>Undergraduates:
+      <ul>
+        <li> Ceridwen Driskill</li>
+        <li> Kurran Singh</li>
+      </ul>
+    </li>
+  </ul>
+
+{% endblock %}

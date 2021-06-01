@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% set active_page = "index_page" %}
+
+{% block content %}
+  <div class="container">
+    <h1><smallcaps>Passport</smallcaps></h1>     
+    <img class="img-responsive img-center-passport" src="{{url_for('static', filename='img/passport.png')}}" alt="Logo">
+    <p> 
+        It is well known that at a global scale Internet routing is based on ASes and their relationships, not based on geopolitical properties of the networks they traverse. 
+        As a result, it is common for Internet traffic to traverse international borders, with potential implications for privacy, security, and efficiency.
+        While there is significant prior work that identifies the ASes traversed by Internet paths and on geolocating end hosts, there is little work that focuses on identifying the geolocations of <em>routers</em> along the paths and their implications. 
+    </p> 
+    <p> 
+        <smallcaps>Passport</smallcaps> sheds light on this issue by measuring how and when Internet traffic traverses national boundaries. 
+        To do this, we use machine learning to combine individually noisy information sources, and measurements issued from hundereds of vantage points to provide a reliable location prediction. 
+        By providing <smallcaps>Passport</smallcaps> with traceroutes and IP addresses, you will help us understand if and how Internet paths traverse national boundaries, even when two endpoints are in the same country. 
+        And we'll show you these paths, helping you to understand where your Internet traffic goes.
+    </p>
+
+  </div>
+{% endblock %}

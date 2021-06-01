@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        {% include "head.html"%}
+        <script type="text/javascript">
+            {% block scriptdata %}{% endblock %}
+        </script>        
+    </head>
+    
+
+    <body> 
+        <nav class="navbar navbar-light bg-faded navbar-toggleable-md">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="{{ url_for('index_page') }}">
+                <span>
+                    <img src="{{url_for('static', filename='img/passport.png')}}" width="30" height="30" class="d-inline-block align-top" alt=""> 
+                </span>
+                <smallcaps>Passport</smallcaps>
+              </a>
+            </div>
+            <div id="navbar" class="collapse navbar-collapse">
+              <ul class="nav navbar-nav">
+                <li class="nav-item {{ 'active' if active_page == 'index_page' else '' }}"><a href="{{ url_for('index_page') }}">Home</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Locate <span class="caret"></span></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('v1_locate_traceroute_form') }}">Traceroute</a></li>
+                    <li><a href="{{ url_for('v1_locate_ip_address_form') }}">IP Address</a></li>
+                    <!--<li><a href="{{ url_for('interesting_cases') }}">International Detours</a></li>-->                  
+                  </ul>
+                </li>
+
+                <!--
+                <li class="nav-item {{ 'active' if active_page == 'locate_traceroute' else '' }}"><a href="{{ url_for('v1_locate_traceroute_form') }}">Locate Traceroute</a></li>
+                <li class="nav-item {{ 'active' if active_page == 'locate_ip' else '' }}"><a href="{{ url_for('v1_locate_ip_address_form') }}">Locate IP</a></li>
+                <li class="nav-item {{ 'active' if active_page == 'interesting_cases' else '' }}"><a href="{{ url_for('interesting_cases') }}">International Detours</a></li>
+                -->
+
+                <li class="nav-item {{ 'active' if active_page == 'about' else '' }}"><a href="{{ url_for('about_page') }}">About</a></li>
+                <li class="nav-item {{ 'active' if active_page == 'contact' else '' }}"><a href="{{ url_for('contact_page') }}">Contact</a></li>
+              </ul>
+            </div><!--/.nav-collapse -->
+          </div>
+        </nav>
+
+        <div id="content" class="container">{% block content %}{% endblock %}</div>
+        {% include 'footer.html' %}
+    </body>
+</html>
+

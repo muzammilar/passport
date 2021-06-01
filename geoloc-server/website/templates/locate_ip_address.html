@@ -1,0 +1,1018 @@
+{% extends "base.html" %}
+{% set active_page = "locate_ip" %}
+
+{% block scriptdata %}
+    var tracerouteInfoObject = {{traceroute_info_object|tojson}};
+    var errorInParsing = {{error|tojson}};
+    var errorTypeInParsing ={{error_type|tojson}};
+    var countryNameToISOCode = {{country_name_to_code|tojson}};
+{% endblock %}
+{% block content %}
+
+<!--
+<h1>Locate Traceroutes</h1>
+<div class="container" id="globe-error-div">
+</div>
+<div class="col-md-12 hidden" id="globe-loader-div">
+  <br/><br/>
+  <hr/>
+  <br/>
+  <i class="fa fa-spinner fa-spin slow-spin" style="font-size:50px;color:#3498db;"></i>
+  <br/><br/>
+  <div id="globe-loader-div-text"><p>Loading Hops...</p></div>
+</div>
+<div class="container hidden" id="globe">
+
+  <div class="col-md-12" id="hops-div-parent">
+    <hr/>
+    <h2></h2>
+    <div class="cotainer" id="hops-div"></div>
+  </div>
+
+  <div class="container" id="globe-table-div-parent">
+    <hr/>
+    <div id="globe-table-map-container-div-header">
+      <h2></h2>
+    </div>
+    <div id="globe-table-div" class="table-responsive">
+      <table id="globe-table" class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>IP</th>
+                <th>Hostname</th>
+                <th>Country</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="globe-table-tbody"><tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-md-12" id="countries-hops-div-parent">
+    <hr/>
+    <h2></h2>
+    <div class="loader" id="countries-hops-div-loader"></div>
+    <div class="cotainer" id="countries-hops-div"></div>
+  </div>
+  <hr/>
+  <div class="container" id="globe-table-map-container-div">
+    <hr/>
+    <div class="container">
+      <div class="container" id="globe-maps-div-parent">
+        <h3></h3>
+        <div id="globe-maps-div"></div>
+      </div>
+    </div>
+  </div>
+</div>
+-->
+
+<h1>Locate IP Address</h1>
+<div class="container" id="globe-error-div">
+</div>
+<div class="col-md-12 hidden" id="globe-loader-div">
+  <br/><br/>
+  <hr/>
+  <br/>
+  <i class="fa fa-spinner fa-spin slow-spin" style="font-size:50px;color:#3498db;"></i>
+  <br/><br/>
+  <div id="globe-loader-div-text"><p>Loading Hops...</p></div>
+</div>
+<div class="container hidden" id="globe">
+  <div class="col-md-12">
+    <hr/>
+    <div class="col-md-6" id="hops-div-parent">
+      <h2></h2>
+      <div class="cotainer" id="hops-div"></div>
+    </div>
+    <div class="col-md-6" id="countries-hops-div-parent">
+      <h2></h2>
+      <div class="loader" id="countries-hops-div-loader"></div>
+      <div class="cotainer" id="countries-hops-div"></div>
+    </div>
+  </div>
+  <hr/>
+  <div class="col-md-12" id="globe-table-map-container-div">
+    <hr/>
+    <div id="globe-table-map-container-div-header">
+      <h2></h2>
+    </div>
+    <div class="col-md-12">
+      <div class="col-md-6" id="globe-table-div-parent">
+        <h3></h3>
+        <div id="globe-table-div" class="table-responsive">
+          <table id="globe-table" class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>IP</th>
+                    <th>Hostname</th>
+                    <th>Country</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="globe-table-tbody"><tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-md-6" id="globe-maps-div-parent">
+        <h3></h3>
+        <div id="globe-maps-div">
+          <div class="alert alert-info" id="globe-maps-div-warning">
+            Please select a country above to view!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/javascript">
+  // code loader
+  var textLoaderDiv = ["Accessing Vantage Points...", "Performing Ping Measurements...","Parsing Hostname Locations...", "Requesting Geolocation Sources...", "Finding Locations...", "Loading Hops..."];
+  var counter = 0;
+  var elemLoaderDiv = $("div#globe-loader-div-text p");
+  setInterval(changeLoaderText, 3000);
+  function changeLoaderText() {
+      elemLoaderDiv.html(textLoaderDiv[counter]);
+      if(counter >= textLoaderDiv.length) { counter = 0; }
+      counter++;
+  }
+</script>
+
+<script>
+var loadCountriesBoolean = false;
+// Loads hops, refreshes each incomplete hop until all hops are completed
+function loadHops(callback) {
+  if (errorInParsing===true){
+    clearInterval(window.loadHopsIntervalHandle);
+    if (typeof callback=="function") {
+      callback(null);
+    }
+    return;
+  }
+  var incompleteHops = []
+  for (hop in tracerouteInfoObject['predictions']) {
+      if (tracerouteInfoObject['predictions'][hop]['status'] == "running") {
+        incompleteHops.push(tracerouteInfoObject['predictions'][hop]);
+      }
+  }
+
+  if (incompleteHops.length == 0){
+      tracerouteInfoObject['status'] = "finished";
+      tracerouteInfoObject['completed'] = true;
+      $("#globe-loader-div").fadeOut();
+      clearInterval(window.loadHopsIntervalHandle);
+      loadCountriesBoolean=true;
+      if (typeof callback=="function") {
+        callback(null);
+      }
+      return;
+  }
+
+  if (incompleteHops.length > 0) {
+    //console.log("refreshed");
+    i = -1;
+    for (hop in incompleteHops) {
+      trHop = incompleteHops[hop]["hop"];
+      i = i + 1;
+      var ip = incompleteHops[hop]["ip"];
+      $.ajax({
+          type:"POST",
+          dataType: "json",
+          data: JSON.stringify({'ip' : String(ip)}),
+          contentType: "application/json",
+          url: "/api/v1/locateip",
+          success: function(data){
+            if (data['status'] === 'running'){return;}
+            for (var i=0; i < tracerouteInfoObject['predictions'].length; i++) {
+              if (data['ip'] === tracerouteInfoObject['predictions'][i]['ip']){
+                data['hop'] = tracerouteInfoObject['predictions'][i]['hop']
+                tracerouteInfoObject['predictions'][i]['status'] = data['status']
+                tracerouteInfoObject['predictions'][i]['error_type'] = data['error_type']
+                tracerouteInfoObject['predictions'][i]['error'] = data['error']
+                tracerouteInfoObject['predictions'][i]['area'] = data['area']
+                tracerouteInfoObject['predictions'][i]['classifier'] = data['classifier']
+                tracerouteInfoObject['predictions'][i]['combined'] = data['combined']
+                tracerouteInfoObject['predictions'][i]['overall'] = data['overall']
+                tracerouteInfoObject['predictions'][i]['hostname'] = data['hostname']
+                // update the table
+                updateTable(data);
+                // update the colors
+                refreshDataDict();
+                var node = d3.select("#svg-parent").selectAll(".node")
+                  .data(graph.nodes)
+                  .style("fill", updateNodeColor);
+                //console.log(node);
+              }
+            }
+            /*if (data['status'] === 'finished') {
+              incompleteHops.splice(hop, 1);
+              data["hop"] = trHop;
+              tracerouteInfoObject['predictions'][trHop - 1] = data;
+              console.
+              console.log(trHop);
+              console.log(data);
+              console.log(tracerouteInfoObject);
+              console.log("rebuilding graph");
+              createGraph();
+              refreshDataDict();
+            }
+            else { ;}*/
+          }
+      })
+    }
+  }
+  if (typeof callback=="function") {
+    callback(null);
+  }
+}
+
+var dataDict = {}
+
+// Keep dataDict in sync with tr info object
+function refreshDataDict(callback) {
+  //console.log("refreshing data dict");
+  for (hop in tracerouteInfoObject["predictions"]) {
+    dataDict[tracerouteInfoObject["predictions"][hop]["ip"]] = tracerouteInfoObject["predictions"][hop];
+  }
+  if (typeof callback=="function") {
+    callback(null);
+  }
+}
+
+
+var graph = {"nodes" : [], "links" : []};
+var redColor = "#f44542"
+var yellowColor = "#f4f442";
+var greenColor = "#45f442";
+
+function createGraph(callback) {
+  graph.nodes = []
+  graph.links = []
+  //console.log("here comes the traceroute object");
+  //console.log(tracerouteInfoObject);
+  var trLength = tracerouteInfoObject["predictions"].length;
+  var i = 0;
+  for (hop in tracerouteInfoObject["predictions"]) {
+    tracerouteInfoObject["predictions"][hop]["x"] = ((i + 1) * 100);
+    tracerouteInfoObject["predictions"][hop]["y"] = 60;
+    graph["nodes"].push(tracerouteInfoObject["predictions"][i]);
+    if (i < trLength - 1) {
+      graph["links"].push({"source": i, "target": i + 1, "value" : 10})
+    }
+    i = i + 1;
+  }
+  //console.log("here comes the graph");
+  //console.log(graph);
+
+  if (typeof callback=="function") {
+    callback(null);
+  }
+}
+
+// set the initial values to zero
+//$('#globe-table-tbody').html("");
+var tickSymbol = "&#10004;";
+var crossSymbol = "&#10008;";
+var dashSymbol = "&#9473;";
+
+function updateTable(ipDataObj){
+  var tableBodyCols = $('#globe-table-tbody td');
+  var tableRow = tableBodyCols.filter(function() {
+      return $(this).text() === ipDataObj.ip;
+  }).closest("tr");
+  var symbol = "";
+  var colorSymbol = "";
+  if (ipDataObj.error === true) {
+    symbol = crossSymbol;
+    colorSymbol = redColor;
+  }
+  else if (ipDataObj.status === "running") {
+    //tr.addClass("warning");
+    symbol = dashSymbol;
+    colorSymbol = yellowColor;
+  }
+  else {
+    symbol = tickSymbol;
+    colorSymbol = greenColor;
+  }
+  var span = $("<span>");
+  span.css("color", colorSymbol);
+  span.html(symbol);
+  // change the tick
+  tableRow.find('td:nth-last-child(1)').html(span);
+  tableRow.find('td:nth-last-child(2)').html(ipDataObj.overall.join(", "));
+}
+
+function createTable(callback){
+
+  var newBody = "";
+  for (hop in tracerouteInfoObject['predictions']) {
+    var symbol = "";
+    var colorSymbol = "";
+    if (tracerouteInfoObject['predictions'][hop]['error'] === true) {
+      // red
+      //tr.addClass("failure");
+      symbol = crossSymbol;
+      colorSymbol = redColor;
+    }
+    else if (tracerouteInfoObject['predictions'][hop]['status'] === "running") {
+      //tr.addClass("warning");
+      symbol = dashSymbol;
+      colorSymbol = yellowColor;
+    }
+    //tr.addClass("success");
+    else {
+      symbol = tickSymbol;
+      colorSymbol = greenColor;
+    }
+    var tr = $("<tr>");
+    var td = $("<td>");
+    td.html(tracerouteInfoObject['predictions'][hop]['hop']);
+    td.appendTo(tr);
+    var td = $("<td>");
+    td.html(tracerouteInfoObject['predictions'][hop]['ip']);
+    td.appendTo(tr);
+    var td = $("<td>");
+    td.html(tracerouteInfoObject['predictions'][hop]['hostname']);
+    td.appendTo(tr);
+    var td = $("<td>");
+    td.html(tracerouteInfoObject['predictions'][hop]['overall']);
+    td.appendTo(tr);
+    var span = $("<span>");
+    span.css("color", colorSymbol);
+    span.html(symbol);
+    var td = $("<td>");
+    td.html(span);
+    td.appendTo(tr);
+    var tempContainer = $("<div>");
+    tr.appendTo(tempContainer);
+    newBody += tempContainer.html();
+  }
+  //console.log(newBody);
+  $('#globe-table-tbody').html(newBody);
+
+  if (typeof callback=="function") {
+    callback(null);
+  }
+}
+
+
+function main() {
+  $("#globe-maps-div-warning").hide();
+
+  if (errorInParsing===true){
+    $("#globe-error-div").append("<br>");
+    $("#globe-error-div").append("<hr>");
+    d = document.createElement('div');
+    $(d).addClass("alert alert-danger")
+    .html("<strong>Error! </strong>" + errorTypeInParsing)
+    .appendTo($("#globe-error-div"));
+    $("#globe-error-div").append("<hr>");
+    return;
+  }
+
+  $("#globe").removeClass("hidden");
+  $("#globe-loader-div").removeClass("hidden");
+  var width = graph["nodes"].length * 100 + 100,
+    height = 140 //graph["nodes"].length * 50;
+
+  var color = d3.scale.category20();
+
+  // tooltip always goes in the body.
+  var tooltipHops = d3.select("#globe")
+	.append("div")
+    .attr("class", "tooltip")
+    .attr("id", "tooltip-hops")
+    .style("opacity", 0);
+
+  //$("div#hops-div").addClass("panel  panel-default");
+  $("div#hops-div-parent h2").html("IP address Info:");
+  $("div#countries-hops-div-parent h2").html("Countries:");
+  $("div#globe-table-map-container-div-header h2").html("IP Address Details:");
+
+  var svg = d3.select("#hops-div").append("svg")
+    .attr("id", 'svg-parent')
+    .attr("width", width)
+    .attr("height", height);
+
+  var force = d3.layout.force()
+    .charge(0)
+    .linkDistance(100) // Not necessarily what decides actual initial link distance
+    .gravity(0)
+    .size([width, height]);
+
+  // build the arrow.
+  svg.append("svg:defs").selectAll("marker")
+    .data(["end"])      // Different link/path types can be defined here
+  .enter().append("svg:marker")    // This section adds in the arrows
+    .attr("id", String)
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 20)
+    .attr("refY", 0)
+    .attr("markerWidth", 4)
+    .attr("markerHeight", 4)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5")
+    .attr('fill', '#000');
+
+  var link = svg.selectAll(".link")
+    .data(graph.links)
+    .enter().append("line")
+    .attr("class", "link")
+    .attr("marker-end", "url(#end)");
+    /*.style("stroke-width", function (d) {
+    return Math.sqrt(d.value);
+    });*/
+
+  var node = svg.selectAll(".node")
+    .data(graph.nodes);
+    /*.style("fill", function (d) {
+      console.log("in update mode ----------------------------------");
+      if (dataDict[d["ip"]]["error_type"] == "" && dataDict[d["ip"]]["overall"].length != 0 && dataDict[d["ip"]]["status"] == "finished") { return "#62a3ff"; }
+      if (dataDict[d["ip"]]["status"] == "running") { return "#62a3ff"; }
+      else { return "#62a3ff"; }
+    });*/
+    //.on("mouseover", function(d){tooltip.html("TESTTESTESTTEST: ".concat(dataDict[d["ip"]]["hop"]).concat("<br>Country Prediction(s): ").concat(dataDict[d["ip"]]["overall"])
+    //.concat("<br>IP: ").concat(d["ip"]).concat("<br>Hostname: ").concat(dataDict[d["ip"]]["hostname"]));
+    //return tooltip.style("visibility", "visible");})
+	//.on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+	//.on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+  node.enter().append("g")
+    .append("circle")
+      .attr("class", "node")
+      .attr("r", 20)
+      .style("fill", updateNodeColor)
+  	.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", ".30em")
+      .text(function (d) {
+      return "#".concat(d["hop"]);
+      }).style("fill", "#000000");
+
+  node.exit().remove();
+
+  node.attr("cx", function (d) {
+    return ((parseInt(d["hop"]) + 1) * 30);
+    })
+    .attr("cy", 80 + Math.random() * 40)
+    .data(graph.nodes);
+
+  node.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", ".30em")
+    .text(function (d) {
+    return String(d["hop"]);
+    }).style("fill", "#000000");
+
+  node.on("mouseover", mouseoverCircle)
+    .on("mouseout", mouseoutCircle)
+    .call(force.drag);
+
+  force.on("tick", function () {
+    link
+    .attr("x1", function (d) {
+        return d.source.x;
+    })
+    .attr("y1", function (d) {
+        return d.source.y;
+    })
+    .attr("x2", function (d) {
+        return d.target.x;
+    })
+    .attr("y2", function(d){
+        return d.target.y;
+    });
+
+    node.attr("transform", function (d) {
+        return "translate(" + d.x + "," + d.y + ")";
+    })
+    .style("fill", "#000000");
+  });
+
+  force.nodes(graph.nodes)
+      .links(graph.links)
+      .start();
+
+  var initialColor = null;
+
+
+  function getTooltipHtmlFromData(d){
+    if (d.error){
+       return "<strong>Error: </strong>" + d.error_type;
+    }
+    if (d.status === "running"){
+      return "<strong>Evaluating Countries: </strong> Please wait...";
+    }
+    return "<strong>Countries: </strong>" + d.overall.join(", ");
+  }
+
+  function mouseoverCircle(d) {
+    /*link.style('stroke-width', function(l) {
+        if (d === l.source || d === l.target)
+            return 8;
+		})
+        .attr("refX", 10);*/
+
+    d3.select(this).select("circle").transition()
+        .duration(300)
+        .attr("r", 30)
+        .style("fill", function(d) {
+            initialColor = d3.select(this).style("fill");
+            return d3.rgb(initialColor).brighter(2);
+    });
+    // change color
+    tooltipHops.style("background", d3.rgb(initialColor).brighter(3.75));
+    tooltipHops.style("color", d3.rgb(initialColor).darker(2.5));
+    tooltipHops.style("border-color", d3.rgb(initialColor).darker(2.5));
+    // transition
+    tooltipHops.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+
+    tooltipHops.html("<strong>IP:  </strong>" + d.ip + "<br/>"  +"<strong>Hostname: </strong>" + d.ip + "<br/>"  + getTooltipHtmlFromData(d))
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY) + "px");
+  }
+
+  function mouseoutCircle() {
+    //link.style('stroke-width', 4);
+    d3.select(this).select("circle").transition()
+        .duration(750)
+        .attr("r", 20)
+        .style("fill", updateNodeColor);
+    tooltipHops.transition()
+                .duration(500)
+                .style("opacity", 0);
+  }
+
+}
+
+function updateNodeColor(d) {
+  if (d.error){
+     return "#f44542";
+  }
+  if (d.status === "running"){
+     return "#f4f442";
+  }
+  return "#45f442";
+}
+
+
+queue()
+  .defer(refreshDataDict)
+  .defer(createGraph)
+  .defer(createTable)
+  .await(main);
+
+setTimeout(loadHops, 500 + Math.random() * 1000);  // in case everything is loaded already
+window.loadHopsIntervalHandle = setInterval(loadHops, 7000 + Math.random() * 4000);
+
+//------------------------------------------------------
+//------------------------------------------------------
+
+//------------------------------------------------------
+
+var countryGraph = {"nodes" : [], "links" : []};
+var countryColor = "#4542f4";
+countryColor = "#3498db";
+//countryColor = "#69c5e8";
+//var countryColorLight = ""
+var countries = [];
+var allCountries;
+var allCountriesHashMap = {};
+var countryInfoObject = {};
+var projection;
+var globe;
+var land;
+var borders;
+var globe_canvas_width = 500;
+var globe_canvas_height = 500;
+
+function mainCountryGraphGenerate(){
+  $("#countries-hops-div").hide();
+  var width = countryGraph["nodes"].length * 100 + 100,
+    height = 140 //graph["nodes"].length * 50;
+
+  var color = d3.scale.category20();
+
+  //$("div#hops-div").addClass("panel  panel-default");
+  var svg = d3.select("#countries-hops-div").append("svg")
+    .attr("id", 'svg-parent-countries-hops')
+    .attr("width", width)
+    .attr("height", height);
+
+    var tooltipCountries = d3.select("#globe")
+  	.append("div")
+      .attr("class", "tooltip")
+      .attr("id", "tooltip-countries")
+      .style("opacity", 0);
+
+  var force = d3.layout.force()
+    .charge(0)
+    .linkDistance(100) // Not necessarily what decides actual initial link distance
+    .gravity(0)
+    .size([width, height]);
+
+  // build the arrow.
+  svg.append("svg:defs").selectAll("marker")
+    .data(["end"])      // Different link/path types can be defined here
+  .enter().append("svg:marker")    // This section adds in the arrows
+    .attr("id", "countries-hops-markers")
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 25)
+    .attr("refY", 0)
+    .attr("markerWidth", 4)
+    .attr("markerHeight", 4)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5")
+    .attr('fill', '#000');
+
+  var link = svg.selectAll(".link")
+    .data(countryGraph.links)
+    .enter().append("line")
+    .attr("class", "link")
+    .attr("marker-end", "url(#end)");
+    /*.style("stroke-width", function (d) {
+    return Math.sqrt(d.value);
+    });*/
+
+  var node = svg.selectAll(".node")
+    .data(countryGraph.nodes);
+
+  node.enter().append("g")
+    .append("circle")
+      .attr("class", "node")
+      .attr("r", 25)
+      .style("fill", countryColorFunction)
+  	.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", ".30em")
+      .text(function (d) {
+      return d["countrycode"];
+      }).style("fill", "#000000");
+
+  node.exit().remove();
+
+  node.attr("cx", function (d) {
+    return ((parseInt(d["hop"]) + 1) * 30);
+    })
+    .attr("cy", 80 + Math.random() * 40)
+    .data(countryGraph.nodes);
+
+  node.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", ".30em")
+    .text(function (d) {
+    return String(d["countrycode"]);
+    }).style("fill", "#000000");
+
+  node.on("mouseover", mouseoverCountry)
+    .on("mouseout", mouseoutCountry)
+    .call(force.drag);
+
+  force.on("tick", function () {
+    link
+    .attr("x1", function (d) {
+        return d.source.x;
+    })
+    .attr("y1", function (d) {
+        return d.source.y;
+    })
+    .attr("x2", function (d) {
+        return d.target.x;
+    })
+    .attr("y2", function(d){
+        return d.target.y;
+    });
+
+    node.attr("transform", function (d) {
+        return "translate(" + d.x + "," + d.y + ")";
+    })
+    .style("fill", "#000000");
+  });
+
+  force.nodes(countryGraph.nodes)
+      .links(countryGraph.links)
+      .start();
+
+  $("#countries-hops-div-loader").fadeOut('fast');
+  $("#countries-hops-div").fadeIn('slow');
+
+  var initialColor = null;
+
+  function countryColorFunction(d){
+    if (d.country==="SRC" || d.country==="DST"){
+      return countryColor;
+    }
+    if (d.country==="Unknown"){
+      return redColor;
+    }
+    return greenColor;
+  }
+
+  function getCountryTooltipHtmlFromData(d){
+    if (d.country==="SRC"){
+       return "<strong>Source</strong>";
+    }
+    if (d.country==="DST"){
+       return "<strong>Destination</strong>";
+    }
+    if (d.country==="Unknown"){
+       return "<strong>Unknown: </strong> Failed to find the country.";
+    }
+    return "<strong>Countries: </strong>" + d.country;
+  }
+
+  function mouseoverCountry(d) {
+
+    initialColor = d3.select(this).select("circle").style("fill");
+    // change color
+    tooltipCountries.style("background", d3.rgb(initialColor).brighter(3.75));
+    tooltipCountries.style("color", d3.rgb(initialColor).darker(2.5));
+    tooltipCountries.style("border-color", d3.rgb(initialColor).darker(2.5));
+    // transition
+    tooltipCountries.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+    // draw the tooltip
+    tooltipCountries.html(getCountryTooltipHtmlFromData(d))
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY) + "px");
+    // return if you have to do nothing wlaw
+    if (d.country==="SRC" || d.country==="DST"){
+      return;
+    }
+    d3.select(this).select("circle").transition()
+        .duration(300)
+        .attr("r", 35)
+        .style("fill", function(d) {
+            initialColor = d3.select(this).style("fill");
+            return d3.rgb(initialColor).brighter(2);
+    });
+    // set the country
+    var cnt_nm = d["country"].split(", ");
+    countries = [];
+    for (country_idx in cnt_nm) {
+      if (allCountriesHashMap[cnt_nm[country_idx]] === undefined){
+        continue;
+      }
+      countries.push(allCountriesHashMap[cnt_nm[country_idx]]);
+    }
+
+    var n = countries.length;
+    if (n == 0) { return; }
+    // move the map to the countries
+    var canvas = d3.select("#globe-maps-div").select("canvas");
+    var c = canvas.node().getContext("2d");
+    var i = -1;
+
+    d3.transition()
+      .duration(1750)
+      .each("start", function() {
+        i = (i + 1) % n;
+      })
+      .tween("rotate", function(t) {
+        var p = d3.geo.centroid(countries[i]);
+        var r = d3.interpolate(projection.rotate(), [-p[0], -p[1]]);
+        return function(t) {
+          projection.rotate(r(t));
+          c.clearRect(0, 0, globe_canvas_width, globe_canvas_height);
+          c.fillStyle = "#ccc", c.beginPath(), path(land), c.fill();
+          c.fillStyle = "#45f442", c.beginPath(), path(countries[i]), c.fill();
+          c.strokeStyle = "#fff", c.lineWidth = .5, c.beginPath(), path(borders), c.stroke();
+          c.strokeStyle = "#000", c.lineWidth = 2, c.beginPath(), path(globe), c.stroke();
+        };
+      });
+  }
+
+  function mouseoutCountry(d) {
+    tooltipCountries.transition()
+                .duration(500)
+                .style("opacity", 0);
+    if (d.country==="SRC" || d.country==="DST"){
+      return;
+    }
+    //link.style('stroke-width', 4);
+    d3.select(this).select("circle").transition()
+        .duration(750)
+        .attr("r", 25)
+        .style("fill", countryColorFunction);
+    var n = countries.length;
+    if (n == 0) { return; }
+    countries = [];
+    // remove the highlighted country
+    var canvas = d3.select("#globe-maps-div").select("canvas");
+    var c = canvas.node().getContext("2d");
+    c.fillStyle = "#ccc", c.beginPath(), path(land), c.fill();
+    c.strokeStyle = "#fff", c.lineWidth = .5, c.beginPath(), path(borders), c.stroke();
+    c.strokeStyle = "#000", c.lineWidth = 2, c.beginPath(), path(globe), c.stroke();
+
+  }
+}
+
+function getCountryCodeFromName(countriesNameString){
+  if (countriesNameString ==="SRC" || countriesNameString==="DST"){
+    return countriesNameString;
+  }
+  if (countriesNameString==="Unknown"){
+    return "--";
+  }
+  var cntryNmeList = countriesNameString.split(", ");
+  var cntryCdeList = [];
+  for (var cntIdx in cntryNmeList){
+    var x = countryNameToISOCode[cntryNmeList[cntIdx]];
+    if (x === undefined){
+        continue;
+    }
+    cntryCdeList.push(x);
+  }
+  if (cntryCdeList.length === 0){
+    return countriesNameString;
+  }
+  return cntryCdeList.join(", ");
+}
+
+function createCountryGraphData(countryHopsNames, callback) {
+  countryGraph.nodes = []
+  countryGraph.links = []
+  //console.log("here comes the traceroute object");
+  //console.log(tracerouteInfoObject);
+  var trLength = countryHopsNames.length;
+  var i = 0;
+  for (hop in countryHopsNames) {
+    countryInfoObject[hop] = {};
+    countryInfoObject[hop]["country"] = countryHopsNames[hop];
+    countryInfoObject[hop]["countrycode"] = getCountryCodeFromName(countryHopsNames[hop]);
+    countryInfoObject[hop]["hop"] = i;
+    countryInfoObject[hop]["x"] = ((i + 1) * 100);
+    countryInfoObject[hop]["y"] = 65;
+    countryGraph["nodes"].push(countryInfoObject[i]);
+    if (i < trLength - 1) {
+      countryGraph["links"].push({"source": i, "target": i + 1, "value" : 10});
+    }
+    i = i + 1;
+  }
+
+  if (typeof callback=="function") {
+    callback(null);
+  }
+}
+
+
+// create countries graph
+function generateCountryGraphObjectFromTraceroute(callback){
+  // if the function is not finished then wait
+  if (loadCountriesBoolean === false){
+    setTimeout(generateCountryGraphObjectFromTraceroute, 500);
+    if (typeof callback=="function") {
+      callback(null);
+    }
+    return;
+  }
+  // create a list of countries to view
+  var countryHopsNames = [];
+  var lastCountry;
+  var curCountry;
+  // traverse over all the traceroutes. get all the country names
+  //countryHopsNames.push("SRC");
+  for (hop in tracerouteInfoObject["predictions"]) {
+    if (tracerouteInfoObject["predictions"][hop]["overall"][0] === "" || tracerouteInfoObject["predictions"][hop]["overall"][0] === "-" || tracerouteInfoObject["predictions"][hop]["overall"][0] === undefined) { ;}
+    else {
+      curCountry = tracerouteInfoObject["predictions"][hop]["overall"].join(", ");
+      if (curCountry === lastCountry){continue;}
+      countryHopsNames.push(curCountry);
+      lastCountry = curCountry;
+    }
+  }
+  //countryHopsNames.push("DST");
+
+  // create a graph object
+  createCountryGraphData(countryHopsNames);
+  // draw a graph of the country names
+  mainCountryGraphGenerate();
+  // add a listener on them to change to the country on hover
+
+  if (typeof callback=="function") {
+    callback(null);
+  }
+}
+
+
+queue()
+  .defer(mainGlobeGenerate)
+  .await(generateCountryGraphObjectFromTraceroute);
+
+//------------------------------------------------------
+//------------------------------------------------------
+//------------------------------------------------------
+//------------------------------------------------------
+
+//setTimeout(mainGlobeGenerate, 15000);
+//mainGlobeGenerate()
+//queue().await(mainGlobeGenerate)
+
+function mainGlobeGenerate(callback) {
+  var width = globe_canvas_width,
+    height = globe_canvas_height;
+
+  projection = d3.geo.orthographic()
+    .translate([width / 2, height / 2])
+    .scale(width / 2 - 20)
+    .clipAngle(90)
+    .precision(0.6)
+    .rotate([0, 0]);
+
+  var canvas = d3.select("#globe-maps-div").append("canvas")
+    .attr("width", width)
+    .attr("height", height);
+
+  var c = canvas.node().getContext("2d");
+
+  path = d3.geo.path()
+    .projection(projection)
+    .context(c);
+
+  titleCountryMap = d3.select($("<h2>")); //create but don't append this element
+  var geopath = []
+  for (hop in tracerouteInfoObject["predictions"]) {
+    if (tracerouteInfoObject["predictions"][hop]["overall"][0] === "") { ;}
+    else { geopath.push(tracerouteInfoObject["predictions"][hop]["overall"][0]); }
+  }
+
+  queue()
+      .defer(d3.json, "{{url_for('static', filename='data/world-110m.json')}}")
+      .defer(d3.csv, "{{url_for('static', filename='data/world-country-names.tsv')}}")
+      .await(ready);
+
+  function include(arr,obj) {
+      return (arr.indexOf(obj) != -1);
+  }
+
+  function ready(error, world, names) {
+    if (error) throw error;
+
+    globe = {type: "Sphere"};
+    land = topojson.feature(world, world.objects.land);
+    borders = topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; });
+    i = -1;
+    allCountries = topojson.feature(world, world.objects.countries).features;
+
+    allCountries = allCountries.filter(function(d) {
+      return names.some(function(n) {
+        if (d.id == n.id) return d.name = n.name;
+      });
+    });
+    // hash data. saves time
+    for (data in allCountries){
+      allCountriesHashMap[allCountries[data].name] = allCountries[data];
+    }
+
+    // create an empty map
+    c.clearRect(0, 0, width, height);
+    c.fillStyle = "#ccc", c.beginPath(), path(land), c.fill();
+    //c.fillStyle = "#45f442", c.beginPath(), path(allCountriesHashMap["United States"]), c.fill();
+    c.strokeStyle = "#fff", c.lineWidth = .5, c.beginPath(), path(borders), c.stroke();
+    c.strokeStyle = "#000", c.lineWidth = 2, c.beginPath(), path(globe), c.stroke();
+  }
+
+  canvas.on("mouseover",function(){
+    $("#globe-maps-div-warning").fadeIn('fast');
+  });
+
+  canvas.on("mouseout",function(){
+    $("#globe-maps-div-warning").fadeOut('fast');
+  });
+
+  d3.select(self.frameElement).style("height", height + "px");
+  if (typeof callback=="function") {
+    callback(null);
+  }
+
+}
+</script>
+
+{% endblock %}
+
+
+{# comment
+
+{% extends "base.html" %}
+{% set active_page = "locate_ip" %}
+
+{% block content %}
+    {% for pred_dict in predictions %}
+       {% for key, value in pred_dict.items() %}
+          <p>{{key}}: {{value}} </p>
+       {% endfor %}
+    {% endfor %}
+{% endblock %}
+
+#}

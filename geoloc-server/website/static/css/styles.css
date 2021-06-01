@@ -1,0 +1,113 @@
+/*h1 {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 18px;
+}
+*/
+/*body { 
+    background-image: url('https://www.ngdc.noaa.gov/mgg/topo/img/globe3t.gif');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: bottom; */
+}
+.node {
+    cursor: pointer;
+    stroke: #fff;
+    stroke-width: 3.5px;
+}
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-width: 4px;
+  cursor: default;
+}
+div.globe {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+smallcaps{
+    font-variant: small-caps;
+}
+.img-center-passport{
+    margin: 0 auto;
+    width:20%;
+}
+#globe-loader-div {
+    text-align:center;
+    overflow:auto; 
+    /*border-top: 16px solid blue;
+    border-bottom: 16px solid blue;*/
+}
+textarea{
+    color:grey;
+}
+
+.cover-child-width {
+    width: 100%
+}
+
+div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    /*width: 60px;					
+    height: 28px;
+    background: lightsteelblue;	
+    font: 12px sans-serif;					
+    font-weight: bold;*/
+    font-size: 105%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    overflow:auto; 
+    padding: 10px;				
+    border: 2px;
+    border-style: solid;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
+
+
+#content {
+  min-height: 80vh;
+}
+
+.has-spinner .fa-spinner {
+  opacity: 0;
+  max-width: 0;
+
+  -webkit-transition: opacity 0.25s, max-width 0.45s; 
+  -moz-transition: opacity 0.25s, max-width 0.45s;
+  -o-transition: opacity 0.25s, max-width 0.45s;
+  transition: opacity 0.25s, max-width 0.45s; /* Duration fixed since we animate additional hidden width */
+}
+
+.has-spinner.active {
+  cursor:progress;
+}
+
+.has-spinner.active .fa-spinner {
+  opacity: 1;
+  max-width: 50px; /* More than it will ever come, notice that this affects on animation duration */
+}
+
+.loader {
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #3498db;
+  border-bottom: 16px solid #3498db;
+  margin: 0 auto;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
